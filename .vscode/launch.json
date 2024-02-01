@@ -1,0 +1,24 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "bashdb",
+            "terminalKind": "debugConsole",
+            "request": "launch",
+            "name": "Bash-Debug (simplest configuration)",
+            "program": "${file}",
+            "args": [
+                "194.12.224.8",
+                "172.30.30.30",
+                "5",
+                "15",
+                "100",
+                "200",
+                "3"
+            ],
+        }
+    ]
+}

@@ -8,23 +8,45 @@
 #        command_line    /usr/local/bin/mikrotik-by-ssh-ping-remote-ip '$HOSTADDRESS$' '$ARG1$' '$ARG2$' '$ARG3$' '$ARG4$' '$ARG5$' '$ARG6$' '$ARG7$' '$ARG8$'
 # }
 
+# ssh config file
+CF="$HOME/.ssh/config"
+
 HOST_IP="$1"
 TEST_IP="$2"
-SSH_USER="${3:-monitoring-user}"
-PLOSS_WARN="${4:-10}"
-PLOSS_CRIT="${5:-30}"
-AVGRTT_WARN="${6:-300}"
-AVGRTT_CRIT="${7:-1500}"
-PING_COUNT="${8:-10}"
-SSH_KEY="/var/lib/nagios/id_rsa"
+#SSH_USER="${3:-monitoring-user}"
+PLOSS_WARN="${3:-10}"
+PLOSS_CRIT="${4:-30}"
+AVGRTT_WARN="${5:-300}"
+AVGRTT_CRIT="${6:-1500}"
+#PING_COUNT must be >1 for OS version 7
+PING_COUNT="${7:-3}"
+
+#SSH_KEY="/var/lib/nagios/id_rsa"
+
+# get settings from ssh config
+if [ -f "$CF" ]; then
+  l=$(grep -nor -m 1 $HOST_IP $CF | cut -d ':' -f 1)
+  if [ -n "$l" ]; then
+  #first empty line before found
+    fl=$(head -n $l $CF |grep -n -x '^$'|tail -n 1| cut -d ':' -f 1)
+  #next empty line
+    ll=$(head -n +$fl $CF |grep -n -m2 '^$'|tail -n 1| cut -d ':' -f 1)
+  # get HostKeyAlias
+    ha=$(tail -n +$fl $CF |head -n $ll|grep -i "HostKeyAlias"|cut -d ' ' -f 2)
+    [ -n "$ha" ] && HOST_IP=$ha
+  fi
+fi
 
 SCRIPT="/ping count=$PING_COUNT interval=1 address=$TEST_IP"
 
-OUTPUT=`/usr/bin/ssh  $SSH_USER@$HOST_IP -i $SSH_KEY $SCRIPT | grep sent -A1 | tr -d '[\r\n]'`
+#OUTPUT=`/usr/bin/ssh  $SSH_USER@$HOST_IP -i $SSH_KEY $SCRIPT | grep sent -A1 | tr -d '[\r\n]'`
+
+OUTPUT=`/usr/bin/ssh  $HOST_IP $SCRIPT | grep sent -A1 | tr -d '[\r\n]'`
 [ $? -ne 0 ] && exit 3
 
 # example: sent=4 received=4 packet-loss=0% min-rtt=115ms avg-rtt=135ms 
-OUT_PERF_DATA=`echo $OUTPUT | sed 's/ms//g;s/%//g;s/\r\n//'`
+# remove us
+OUT_PERF_DATA=`echo $OUTPUT | sed 's/[0-9]*us//g;s/ms//g;s/%//g;s/\r\n//'`
 
 PLOSS=`echo $OUT_PERF_DATA  | awk '{print $3}' | cut -d= -f2`
 AVGRTT=`echo $OUT_PERF_DATA | awk '{print $5}' | cut -d= -f2`
