@@ -8,6 +8,14 @@
 #        command_line    /usr/local/bin/mikrotik-by-ssh-ping-remote-ip '$HOSTADDRESS$' '$ARG1$' '$ARG2$' '$ARG3$' '$ARG4$' '$ARG5$' '$ARG6$' '$ARG7$' '$ARG8$'
 # }
 
+#debug
+# DEBUG_LOG="/tmp/${0##*/}.log"
+# echo "$0 started with $@" > ${DEBUG_LOG}
+# export PS4='${LINENO} '
+# exec 1>> ${DEBUG_LOG}
+# exec 2>> ${DEBUG_LOG}
+# set -x
+
 # ssh config file
 CF="$HOME/.ssh/config"
 
@@ -30,9 +38,14 @@ if [ -f "$CF" ]; then
   #first empty line before found
     fl=$(head -n $l $CF |grep -n -x '^$'|tail -n 1| cut -d ':' -f 1)
   #next empty line
-    ll=$(head -n +$fl $CF |grep -n -m2 '^$'|tail -n 1| cut -d ':' -f 1)
+    if [ -z "$fl" ]; then
+      ll=$(grep -n -m1 '^$' $CF|tail -n 1| cut -d ':' -f 1)
   # get HostKeyAlias
-    ha=$(tail -n +$fl $CF |head -n $ll|grep -i "HostKeyAlias"|cut -d ' ' -f 2)
+      ha=$(head -n $ll $CF|grep -i "HostKeyAlias"|cut -d ' ' -f 2)
+    else
+      ll=$(head -n +$fl $CF |grep -n -m2 '^$'|tail -n 1| cut -d ':' -f 1)
+      ha=$(tail -n +$fl $CF |head -n $ll|grep -i "HostKeyAlias"|cut -d ' ' -f 2)
+    fi
     [ -n "$ha" ] && HOST_IP=$ha
   fi
 fi
